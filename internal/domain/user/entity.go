@@ -13,4 +13,6 @@ var (
 	ErrorEmailTaken    = errors.New("e-mail já cadastrado")
 	ErrorUsernameTaken = errors.New("username já cadastrado")
 	ErrorEmptyUsername = errors.New("username obrigatório")
+	ErrorEmptyEmail    = errors.New("e-mail obrigatório")
+	ErrorEmptyPassword = errors.New("senha obrigatória")
 )
