@@ -14,9 +14,10 @@ import (
 
 func main() {
 	cfg := config.Load()
+	db := config.NewDB(cfg.DatabaseURL)
 
 	hasher := security.BcryptHasher{}
-	userRepo := postgres.NewUserRepository()
+	userRepo := postgres.NewUserRepository(db)
 	userSvc := user.NewService(userRepo, hasher)
 	registerUC := usecase.NewRegisterUseCase(userSvc)
 
