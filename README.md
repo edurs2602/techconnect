@@ -60,7 +60,7 @@ go test ./...
 ## Equipe
 
 - **Luis Eduardo Ribeiro** — Backend, implementação e testes
-- **Ian Melo Trindade** — Backend, implementação e testes
+- **Ian Lucas Melo Trindade** — Backend, implementação e testes
 - **Ian Mikahel Dionisio** — Backend, implementação e testes
 - **Adriano Nobrega Filho** — Backend, implementação e testes
 
