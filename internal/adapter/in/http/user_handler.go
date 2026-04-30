@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+
 	"techconnect/internal/application/usecase"
 	"techconnect/internal/domain/user"
 )
@@ -33,7 +34,8 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 		case errors.Is(err, user.ErrorEmailTaken),
 			errors.Is(err, user.ErrorUsernameTaken):
-			respondErr(w, http.StatusConflict, err.Error()) // 409
+			respondErr(w, http.StatusConflict, err.Error())
+
 		default:
 			respondErr(w, http.StatusInternalServerError, "erro interno")
 		}
@@ -41,4 +43,33 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respond(w, http.StatusCreated, out)
+}
+
+type LoginInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+	var input LoginInput
+
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondErr(w, http.StatusBadRequest, "payload inválido")
+		return
+	}
+
+	if input.Email == "" {
+		respondErr(w, http.StatusBadRequest, "email obrigatório")
+		return
+	}
+
+	if input.Password == "" {
+		respondErr(w, http.StatusBadRequest, "senha obrigatória")
+		return
+	}
+
+	respond(w, http.StatusOK, map[string]string{
+		"message": "login realizado com sucesso",
+		"token":   "fake-jwt-token",
+	})
 }
