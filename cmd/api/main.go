@@ -21,7 +21,9 @@ func main() {
 	registerUC := usecase.NewRegisterUseCase(userSvc)
 
 	userHandler := httpAdapter.NewUserHandler(registerUC)
-	router := httpAdapter.NewRouter(userHandler)
+	postHandler := httpAdapter.NewPostHandler()
+
+	router := httpAdapter.NewRouter(userHandler, postHandler)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	log.Printf("servidor rodando em %s", addr)
