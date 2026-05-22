@@ -29,6 +29,10 @@ func NewRouter(userHandler *UserHandler, postHandler *PostHandler) http.Handler 
 		r.Get("/", postHandler.List)
 		r.Post("/", postHandler.Create)
 		r.Get("/{id}", postHandler.GetByID)
+		r.Delete("/{id}", postHandler.Delete)
+
+		r.Post("/{id}/comments", postHandler.AddComment)
+		r.Delete("/{id}/comments/{commentId}", postHandler.DeleteComment)
 	})
 
 	return r
