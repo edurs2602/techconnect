@@ -5,7 +5,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/jmoiron/sqlx"
+	"database/sql"
+
 	_ "github.com/lib/pq"
 )
 
@@ -21,10 +22,13 @@ func Load() Config {
 	}
 }
 
-func NewDB(url string) *sqlx.DB {
-	db, err := sqlx.Connect("postgres", url)
+func NewDB(url string) *sql.DB {
+	db, err := sql.Open("postgres", url)
 	if err != nil {
 		log.Fatalf("erro ao conectar no banco: %v", err)
+	}
+	if err := db.Ping(); err != nil {
+		log.Fatalf("banco inacessível: %v", err)
 	}
 	return db
 }

@@ -4,17 +4,62 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-
 	"techconnect/internal/application/usecase"
 	"techconnect/internal/domain/user"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type UserHandler struct {
-	register *usecase.RegisterUseCase
+	register   *usecase.RegisterUseCase
+	getUser    *usecase.GetUserUseCase
+	updateUser *usecase.UpdateUserUseCase
+	deleteUser *usecase.DeleteUserUseCase
 }
 
-func NewUserHandler(r *usecase.RegisterUseCase) *UserHandler {
-	return &UserHandler{register: r}
+func NewUserHandler(r *usecase.RegisterUseCase, g *usecase.GetUserUseCase, u *usecase.UpdateUserUseCase, d *usecase.DeleteUserUseCase) *UserHandler {
+
+	return &UserHandler{
+		register:   r,
+		getUser:    g,
+		updateUser: u,
+		deleteUser: d,
+	}
+}
+
+func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+	username := chi.URLParam(r, "username")
+
+	out, err := h.getUser.Execute(r.Context(), username)
+	if err != nil {
+		switch {
+		case errors.Is(err, user.ErrorUserNotFound):
+			respondErr(w, http.StatusNotFound, err.Error())
+		default:
+			respondErr(w, http.StatusInternalServerError, "erro interno")
+		}
+		return
+	}
+
+	respond(w, http.StatusOK, out)
+}
+
+func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	userID := chi.URLParam(r, "id")
+
+	var in usecase.UpdateUserInput
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondErr(w, http.StatusBadRequest, "payload inválido")
+		return
+	}
+
+	out, err := h.updateUser.Execute(r.Context(), userID, in)
+	if err != nil {
+		respondErr(w, http.StatusInternalServerError, "erro interno")
+		return
+	}
+
+	respond(w, http.StatusOK, out)
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +88,17 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respond(w, http.StatusCreated, out)
+}
+
+func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	userID := chi.URLParam(r, "id")
+
+	if err := h.deleteUser.Execute(r.Context(), userID); err != nil {
+		respondErr(w, http.StatusInternalServerError, "erro interno")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 type LoginInput struct {

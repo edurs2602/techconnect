@@ -20,8 +20,11 @@ func main() {
 	userRepo := postgres.NewUserRepository(db)
 	userSvc := user.NewService(userRepo, hasher)
 	registerUC := usecase.NewRegisterUseCase(userSvc)
+	getUserUC := usecase.NewGetUserUseCase(userSvc)
+	updateUserUC := usecase.NewUpdateUserUseCase(userSvc)
+	deleteUserUC := usecase.NewDeleteUserUseCase(userSvc)
 
-	userHandler := httpAdapter.NewUserHandler(registerUC)
+	userHandler := httpAdapter.NewUserHandler(registerUC, getUserUC, updateUserUC, deleteUserUC)
 	postHandler := httpAdapter.NewPostHandler()
 
 	router := httpAdapter.NewRouter(userHandler, postHandler)

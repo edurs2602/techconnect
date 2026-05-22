@@ -7,6 +7,7 @@ type User struct {
 	Username string
 	Email    string
 	Password string
+	Bio      string
 }
 
 var (
@@ -15,4 +16,5 @@ var (
 	ErrorEmptyUsername = errors.New("username obrigatório")
 	ErrorEmptyEmail    = errors.New("e-mail obrigatório")
 	ErrorEmptyPassword = errors.New("senha obrigatória")
+	ErrorUserNotFound  = errors.New("usuário não encontrado")
 )

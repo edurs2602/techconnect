@@ -45,3 +45,24 @@ func (s *Service) Register(ctx context.Context, username, email, password string
 	}
 	return u, nil
 }
+
+func (s *Service) GetByUsername(ctx context.Context, username string) (*User, error) {
+	u, err := s.repo.FindByUsername(ctx, username)
+	if err != nil {
+		return nil, ErrorUserNotFound
+	}
+	return u, nil
+}
+
+func (s *Service) Update(ctx context.Context, id, username, bio string) (*User, error) {
+	u := &User{ID: id, Username: username, Bio: bio}
+	updated, err := s.repo.UpdateUser(ctx, u)
+	if err != nil {
+		return nil, err
+	}
+	return updated, nil
+}
+
+func (s *Service) Delete(ctx context.Context, id string) error {
+	return s.repo.DeleteUser(ctx, id)
+}
