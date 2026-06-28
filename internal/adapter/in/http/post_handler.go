@@ -2,105 +2,136 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
-	"strconv"
-	"sync"
-	"time"
+	"techconnect/internal/application/usecase"
+	"techconnect/internal/domain/post"
 
 	"github.com/go-chi/chi/v5"
 )
 
 type PostHandler struct {
-	mu     sync.Mutex
-	posts  []PostResponse
-	nextID int
+	createPost    *usecase.CreatePostUseCase
+	getPost       *usecase.GetPostUseCase
+	listPosts     *usecase.ListPostsUseCase
+	deletePost    *usecase.DeletePostUseCase
+	addComment    *usecase.AddCommentUseCase
+	deleteComment *usecase.DeleteCommentUseCase
 }
 
-type CreatePostInput struct {
-	Title   string `json:"title"`
-	Content string `json:"content"`
-	Author  string `json:"author"`
-}
-
-type PostResponse struct {
-	ID        int       `json:"id"`
-	Title     string    `json:"title"`
-	Content   string    `json:"content"`
-	Author    string    `json:"author"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
-func NewPostHandler() *PostHandler {
+func NewPostHandler(
+	cp *usecase.CreatePostUseCase,
+	gp *usecase.GetPostUseCase,
+	lp *usecase.ListPostsUseCase,
+	dp *usecase.DeletePostUseCase,
+	ac *usecase.AddCommentUseCase,
+	dc *usecase.DeleteCommentUseCase,
+) *PostHandler {
 	return &PostHandler{
-		posts:  []PostResponse{},
-		nextID: 1,
+		createPost:    cp,
+		getPost:       gp,
+		listPosts:     lp,
+		deletePost:    dp,
+		addComment:    ac,
+		deleteComment: dc,
 	}
 }
 
-func (h *PostHandler) List(w http.ResponseWriter, r *http.Request) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	respond(w, http.StatusOK, h.posts)
-}
-
 func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
-	var input CreatePostInput
-
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	var in usecase.CreatePostInput
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		respondErr(w, http.StatusBadRequest, "payload inválido")
 		return
 	}
 
-	if input.Title == "" {
-		respondErr(w, http.StatusBadRequest, "título obrigatório")
+	out, err := h.createPost.Execute(r.Context(), in)
+	if err != nil {
+		switch {
+		case errors.Is(err, post.ErrorEmptyTitle),
+			errors.Is(err, post.ErrorEmptyContent),
+			errors.Is(err, post.ErrorEmptyUserID):
+			respondErr(w, http.StatusBadRequest, err.Error())
+		default:
+			respondErr(w, http.StatusInternalServerError, "erro interno")
+		}
 		return
 	}
 
-	if input.Content == "" {
-		respondErr(w, http.StatusBadRequest, "conteúdo obrigatório")
-		return
-	}
-
-	if input.Author == "" {
-		input.Author = "anônimo"
-	}
-
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	post := PostResponse{
-		ID:        h.nextID,
-		Title:     input.Title,
-		Content:   input.Content,
-		Author:    input.Author,
-		CreatedAt: time.Now(),
-	}
-
-	h.posts = append(h.posts, post)
-	h.nextID++
-
-	respond(w, http.StatusCreated, post)
+	respond(w, http.StatusCreated, out)
 }
 
 func (h *PostHandler) GetByID(w http.ResponseWriter, r *http.Request) {
-	idParam := chi.URLParam(r, "id")
+	id := chi.URLParam(r, "id")
 
-	id, err := strconv.Atoi(idParam)
+	out, err := h.getPost.Execute(r.Context(), id)
 	if err != nil {
-		respondErr(w, http.StatusBadRequest, "id inválido")
+		switch {
+		case errors.Is(err, post.ErrorPostNotFound):
+			respondErr(w, http.StatusNotFound, err.Error())
+		default:
+			respondErr(w, http.StatusInternalServerError, "erro interno")
+		}
 		return
 	}
 
-	h.mu.Lock()
-	defer h.mu.Unlock()
+	respond(w, http.StatusOK, out)
+}
 
-	for _, post := range h.posts {
-		if post.ID == id {
-			respond(w, http.StatusOK, post)
-			return
-		}
+func (h *PostHandler) List(w http.ResponseWriter, r *http.Request) {
+	out, err := h.listPosts.Execute(r.Context())
+	if err != nil {
+		respondErr(w, http.StatusInternalServerError, "erro interno")
+		return
 	}
 
-	respondErr(w, http.StatusNotFound, "post não encontrado")
+	respond(w, http.StatusOK, out)
+}
+
+func (h *PostHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	if err := h.deletePost.Execute(r.Context(), id); err != nil {
+		respondErr(w, http.StatusInternalServerError, "erro interno")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *PostHandler) AddComment(w http.ResponseWriter, r *http.Request) {
+	postID := chi.URLParam(r, "id")
+
+	var in usecase.CreateCommentInput
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondErr(w, http.StatusBadRequest, "payload inválido")
+		return
+	}
+	in.PostID = postID
+
+	out, err := h.addComment.Execute(r.Context(), in)
+	if err != nil {
+		switch {
+		case errors.Is(err, post.ErrorPostNotFound):
+			respondErr(w, http.StatusNotFound, err.Error())
+		case errors.Is(err, post.ErrorEmptyContent),
+			errors.Is(err, post.ErrorEmptyUserID):
+			respondErr(w, http.StatusBadRequest, err.Error())
+		default:
+			respondErr(w, http.StatusInternalServerError, "erro interno")
+		}
+		return
+	}
+
+	respond(w, http.StatusCreated, out)
+}
+
+func (h *PostHandler) DeleteComment(w http.ResponseWriter, r *http.Request) {
+	commentID := chi.URLParam(r, "commentId")
+
+	if err := h.deleteComment.Execute(r.Context(), commentID); err != nil {
+		respondErr(w, http.StatusInternalServerError, "erro interno")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
