@@ -54,6 +54,14 @@ func (s *Service) GetByUsername(ctx context.Context, username string) (*User, er
 	return u, nil
 }
 
+func (s *Service) GetByEmail(ctx context.Context, email string) (*User, error) {
+	u, err := s.repo.FindByEmail(ctx, email)
+	if err != nil {
+		return nil, ErrorUserNotFound
+	}
+	return u, nil
+}
+
 func (s *Service) Update(ctx context.Context, id, username, bio string) (*User, error) {
 	u := &User{ID: id, Username: username, Bio: bio}
 	updated, err := s.repo.UpdateUser(ctx, u)

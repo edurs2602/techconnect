@@ -36,6 +36,20 @@ func (r *UserRepository) ExistsByEmail(ctx context.Context, email string) (bool,
 	return r.queries.ExistsByEmail(ctx, email)
 }
 
+func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*user.User, error) {
+	result, err := r.queries.GetUserByEmail(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+	return &user.User{
+		ID:       result.ID.String(),
+		Username: result.Username,
+		Email:    result.Email,
+		Password: result.Password,
+		Bio:      result.Bio.String,
+	}, nil
+}
+
 func (r *UserRepository) ExistsByUsername(ctx context.Context, username string) (bool, error) {
 	return r.queries.ExistsByUsername(ctx, username)
 }
