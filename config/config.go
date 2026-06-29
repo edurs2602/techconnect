@@ -13,12 +13,14 @@ import (
 type Config struct {
 	DatabaseURL string
 	Port        string
+	JWTSecret   string
 }
 
 func Load() Config {
 	return Config{
 		DatabaseURL: mustGet("DATABASE_URL"),
 		Port:        getOrDefault("PORT", "8080"),
+		JWTSecret:   mustGet("JWT_SECRET"),
 	}
 }
 

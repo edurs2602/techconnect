@@ -28,4 +28,5 @@ var (
 	ErrorEmptyContent    = errors.New("conteúdo obrigatório")
 	ErrorEmptyUserID     = errors.New("usuário obrigatório")
 	ErrorCommentNotFound = errors.New("comentário não encontrado")
+	ErrorEmptyPostID     = errors.New("post obrigatório")
 )

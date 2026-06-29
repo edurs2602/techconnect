@@ -3,37 +3,61 @@ package http
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func NewRouter(userHandler *UserHandler, postHandler *PostHandler) http.Handler {
+type TokenValidator interface {
+	Validate(token string) (string, error)
+}
+
+func NewRouter(userHandler *UserHandler, postHandler *PostHandler, jwtSvc TokenValidator) http.Handler {
 	r := chi.NewRouter()
 
 	UseDefaultMiddlewares(r)
+	r.Use(NewRateLimiter(100, time.Minute))
 
 	r.Get("/health", Health)
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", userHandler.Register)
 		r.Post("/login", userHandler.Login)
+		//	r.Post("/refresh", userHandler.Refresh)
 	})
 
 	r.Route("/user", func(r chi.Router) {
 		r.Get("/{username}", userHandler.GetUser)
+		//	r.Get("/{username}/posts", postHandler.ListByUser)
 		r.Patch("/{id}", userHandler.UpdateUser)  //TODO: AUTENTICAÇÃO
 		r.Delete("/{id}", userHandler.DeleteUser) //TODO: AUTENTICAÇÃO
 	})
 
-	r.Route("/posts", func(r chi.Router) {
-		r.Get("/", postHandler.List)
-		r.Post("/", postHandler.Create)
-		r.Get("/{id}", postHandler.GetByID)
-		r.Delete("/{id}", postHandler.Delete)
+	r.Group(func(r chi.Router) {
+		r.Use(Auth(jwtSvc))
 
-		r.Post("/{id}/comments", postHandler.AddComment)
-		r.Delete("/{id}/comments/{commentId}", postHandler.DeleteComment)
+		r.Patch("/users/me", userHandler.UpdateUser)
+		r.Delete("/users/me", userHandler.DeleteUser)
+
+		r.Route("/posts", func(r chi.Router) {
+			r.Get("/", postHandler.List)
+			r.Post("/", postHandler.Create)
+			r.Get("/{id}", postHandler.GetByID)
+			r.Delete("/{id}", postHandler.Delete)
+			r.Post("/{id}/comments", postHandler.AddComment)
+			r.Delete("/{id}/comments/{commentId}", postHandler.DeleteComment)
+		})
 	})
+
+	//r.Route("/posts", func(r chi.Router) {
+	//	r.Get("/", postHandler.List)
+	//	r.Post("/", postHandler.Create)
+	//	r.Get("/{id}", postHandler.GetByID)
+	//	r.Delete("/{id}", postHandler.Delete)
+	//
+	//	r.Post("/{id}/comments", postHandler.AddComment)
+	//	r.Delete("/{id}/comments/{commentId}", postHandler.DeleteComment)
+	//	})
 
 	return r
 }

@@ -18,14 +18,20 @@ func main() {
 	db := config.NewDB(cfg.DatabaseURL)
 
 	hasher := security.BcryptHasher{}
+	jwtSvc := security.NewJWTService(cfg.JWTSecret)
 
 	// User
 	userRepo := postgres.NewUserRepository(db)
 	userSvc := user.NewService(userRepo, hasher)
 	registerUC := usecase.NewRegisterUseCase(userSvc)
+	loginUC := usecase.NewLoginUseCase(userSvc, hasher, jwtSvc)
 	getUserUC := usecase.NewGetUserUseCase(userSvc)
 	updateUserUC := usecase.NewUpdateUserUseCase(userSvc)
 	deleteUserUC := usecase.NewDeleteUserUseCase(userSvc)
+
+	// Refresh token
+	tokenRepo := postgres.NewRefreshTokenRepository(db)
+	refreshUC := usecase.NewRefreshUseCase(tokenRepo, jwtSvc, jwtSvc)
 
 	// Post + Comment
 	postRepo := postgres.NewPostRepository(db)
@@ -38,10 +44,11 @@ func main() {
 	addCommentUC := usecase.NewAddCommentUseCase(postSvc)
 	deleteCommentUC := usecase.NewDeleteCommentUseCase(postSvc)
 
-	userHandler := httpAdapter.NewUserHandler(registerUC, getUserUC, updateUserUC, deleteUserUC)
+	userHandler := httpAdapter.NewUserHandler(registerUC, loginUC, getUserUC, updateUserUC, deleteUserUC, refreshUC)
+
 	postHandler := httpAdapter.NewPostHandler(createPostUC, getPostUC, listPostsUC, deletePostUC, addCommentUC, deleteCommentUC)
 
-	router := httpAdapter.NewRouter(userHandler, postHandler)
+	router := httpAdapter.NewRouter(userHandler, postHandler, jwtSvc)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	log.Printf("servidor rodando em %s", addr)

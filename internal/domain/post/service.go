@@ -59,6 +59,9 @@ func (s *Service) AddComment(ctx context.Context, postID, userID, content string
 	if userID == "" {
 		return nil, ErrorEmptyUserID
 	}
+	if postID == "" {
+		return nil, ErrorEmptyPostID
+	}
 
 	if _, err := s.postRepo.FindByID(ctx, postID); err != nil {
 		return nil, ErrorPostNotFound

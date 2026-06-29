@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: social
+          POSTGRES_PASSWORD: social
+          POSTGRES_DB: social
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Run migrations
+        run: |
+          psql postgresql://social:social@localhost:5432/social -f db/schema/001_create_users.sql
+          psql postgresql://social:social@localhost:5432/social -f db/schema/002_create_refresh_tokens.sql
+          psql postgresql://social:social@localhost:5432/social -f db/schema/003_create_posts.sql
+
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql://social:social@localhost:5432/social?sslmode=disable
+          JWT_SECRET: test_secret
+        run: go test ./... -v

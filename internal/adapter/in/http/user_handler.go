@@ -12,18 +12,22 @@ import (
 
 type UserHandler struct {
 	register   *usecase.RegisterUseCase
+	login      *usecase.LoginUseCase
 	getUser    *usecase.GetUserUseCase
 	updateUser *usecase.UpdateUserUseCase
 	deleteUser *usecase.DeleteUserUseCase
+	refresh    *usecase.RefreshUseCase
 }
 
-func NewUserHandler(r *usecase.RegisterUseCase, g *usecase.GetUserUseCase, u *usecase.UpdateUserUseCase, d *usecase.DeleteUserUseCase) *UserHandler {
+func NewUserHandler(r *usecase.RegisterUseCase, l *usecase.LoginUseCase, g *usecase.GetUserUseCase, u *usecase.UpdateUserUseCase, d *usecase.DeleteUserUseCase, rf *usecase.RefreshUseCase) *UserHandler {
 
 	return &UserHandler{
 		register:   r,
+		login:      l,
 		getUser:    g,
 		updateUser: u,
 		deleteUser: d,
+		refresh:    rf,
 	}
 }
 
@@ -107,25 +111,33 @@ type LoginInput struct {
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var input LoginInput
-
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	var in usecase.LoginInput
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		respondErr(w, http.StatusBadRequest, "payload inválido")
 		return
 	}
 
-	if input.Email == "" {
-		respondErr(w, http.StatusBadRequest, "email obrigatório")
+	out, err := h.login.Execute(r.Context(), in)
+	if err != nil {
+		respondErr(w, http.StatusUnauthorized, "credenciais inválidas")
 		return
 	}
 
-	if input.Password == "" {
-		respondErr(w, http.StatusBadRequest, "senha obrigatória")
+	respond(w, http.StatusOK, out)
+}
+
+func (h *UserHandler) Refresh(w http.ResponseWriter, r *http.Request) {
+	var in usecase.RefreshInput
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondErr(w, http.StatusBadRequest, "payload inválido")
 		return
 	}
 
-	respond(w, http.StatusOK, map[string]string{
-		"message": "login realizado com sucesso",
-		"token":   "fake-jwt-token",
-	})
+	out, err := h.refresh.Execute(r.Context(), in)
+	if err != nil {
+		respondErr(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	respond(w, http.StatusOK, out)
 }
