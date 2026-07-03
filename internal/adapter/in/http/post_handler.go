@@ -38,11 +38,14 @@ func NewPostHandler(
 }
 
 func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
+	userID := GetUserID(r)
 	var in usecase.CreatePostInput
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		respondErr(w, http.StatusBadRequest, "payload inválido")
 		return
 	}
+
+	in.UserID = userID
 
 	out, err := h.createPost.Execute(r.Context(), in)
 	if err != nil {

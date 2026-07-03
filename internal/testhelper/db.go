@@ -30,7 +30,7 @@ func NewTestDB(t *testing.T) *sql.DB {
 
 func CleanDB(t *testing.T, db *sql.DB) {
 	t.Helper()
-	// limpa na ordem certa por causa das foreign keys
+
 	db.Exec("DELETE FROM comments")
 	db.Exec("DELETE FROM posts")
 	db.Exec("DELETE FROM refresh_tokens")

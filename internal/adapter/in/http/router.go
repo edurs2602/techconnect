@@ -16,21 +16,21 @@ func NewRouter(userHandler *UserHandler, postHandler *PostHandler, jwtSvc TokenV
 	r := chi.NewRouter()
 
 	UseDefaultMiddlewares(r)
-	r.Use(NewRateLimiter(100, time.Minute))
+	r.Use(NewRateLimiter(3, 10*time.Second))
 
 	r.Get("/health", Health)
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", userHandler.Register)
 		r.Post("/login", userHandler.Login)
-		//	r.Post("/refresh", userHandler.Refresh)
+		r.Post("/refresh", userHandler.Refresh)
 	})
 
 	r.Route("/user", func(r chi.Router) {
 		r.Get("/{username}", userHandler.GetUser)
 		//	r.Get("/{username}/posts", postHandler.ListByUser)
-		r.Patch("/{id}", userHandler.UpdateUser)  //TODO: AUTENTICAÇÃO
-		r.Delete("/{id}", userHandler.DeleteUser) //TODO: AUTENTICAÇÃO
+		r.Patch("/{id}", userHandler.UpdateUser)
+		r.Delete("/{id}", userHandler.DeleteUser)
 	})
 
 	r.Group(func(r chi.Router) {
@@ -48,16 +48,6 @@ func NewRouter(userHandler *UserHandler, postHandler *PostHandler, jwtSvc TokenV
 			r.Delete("/{id}/comments/{commentId}", postHandler.DeleteComment)
 		})
 	})
-
-	//r.Route("/posts", func(r chi.Router) {
-	//	r.Get("/", postHandler.List)
-	//	r.Post("/", postHandler.Create)
-	//	r.Get("/{id}", postHandler.GetByID)
-	//	r.Delete("/{id}", postHandler.Delete)
-	//
-	//	r.Post("/{id}/comments", postHandler.AddComment)
-	//	r.Delete("/{id}/comments/{commentId}", postHandler.DeleteComment)
-	//	})
 
 	return r
 }
