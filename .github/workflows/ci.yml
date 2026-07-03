@@ -36,7 +36,7 @@ jobs:
         run: |
           psql postgresql://social:social@localhost:5432/social -f db/schema/001_create_users.sql
           psql postgresql://social:social@localhost:5432/social -f db/schema/002_create_posts.sql
-          psql postgresql://social:social@localhost:5432/social -f db/schema/002_create_comments.sql
+          psql postgresql://social:social@localhost:5432/social -f db/schema/003_create_comments.sql
           psql postgresql://social:social@localhost:5432/social -f db/schema/004_create_refresh_tokens.sql
           
 
